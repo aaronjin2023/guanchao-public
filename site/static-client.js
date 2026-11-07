@@ -85,10 +85,24 @@ function createGuanchaoStaticClient(getSnapshot, storage, storageKey) {
 }
 if(typeof module!=='undefined'&&module.exports)module.exports={createGuanchaoStaticClient};
 else {
+  const savedKey='guanchao-public-saved:'+location.pathname.replace(/index\.html$/,'');
+  const storage={
+    getItem(key) {
+      const current=window.localStorage.getItem(key);
+      if(current!==null || key!=='guanchao-public-saved:/')return current;
+      const previous=window.localStorage.getItem('guanchao-public-saved:/projects/guanchao/');
+      if(previous!==null) {
+        // Preserve same-origin favorites when the public site moves to its root.
+        try {window.localStorage.setItem(key,previous);} catch {}
+      }
+      return previous;
+    },
+    setItem:(key,value)=>window.localStorage.setItem(key,value)
+  };
   window.GuanChaoStatic=createGuanchaoStaticClient(async()=>{
     const path=document.querySelector('meta[name="guanchao-snapshot"]').content;
     const response=await fetch(new URL(path,document.baseURI));
     if(!response.ok)throw new Error('公开快照暂时不可用，请稍后刷新');
     return response.json();
-  },{getItem:key=>window.localStorage.getItem(key),setItem:(key,value)=>window.localStorage.setItem(key,value)},'guanchao-public-saved:'+location.pathname.replace(/index\.html$/,''));
+  },storage,savedKey);
 }
